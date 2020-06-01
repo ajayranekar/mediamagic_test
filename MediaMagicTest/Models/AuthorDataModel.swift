@@ -9,6 +9,10 @@
 import Foundation
 import UIKit
 
+/// image cache object
+private let cache = NSCache<NSString, UIImage>()
+
+// MARK:- Model Class
 class AuthorDataModel: Codable {
     
     let format: String
@@ -24,10 +28,14 @@ class AuthorDataModel: Codable {
         case postURL = "post_url"
     }
     
+    func getAuthorURL() -> String {
+        return Constants.IMAGE_FOR_ID + "\(self.id)"
+    }
+    
     var authImage: UIImage?
     
     // MARK:- Image caching mechanism
-    private let cache = NSCache<NSString, UIImage>()
+    
     var task = URLSessionDataTask()
     var session = URLSession.shared
     
@@ -35,30 +43,31 @@ class AuthorDataModel: Codable {
     func fetchImage(completionHandler: ((UIImage?) -> Void)? ) -> Void {
         
         guard let url = URL.init(string: Constants.IMAGE_FOR_ID + "\(self.id)") else {
+            authImage = nil
             completionHandler?(nil)
             return
         }
         
-        if let imageInCache = self.cache.object(forKey: url.absoluteString as NSString)  {
+        if let imageInCache = cache.object(forKey: url.absoluteString as NSString)  {
             authImage = imageInCache
             completionHandler?(imageInCache)
             return
         }
         
         self.task = self.session.dataTask(with: url) { data, response, error in
-            
-            if let error = error {
-                print("Error = ", error)
-                completionHandler?(nil)
-                return
+            DispatchQueue.main.async {
+                if let _ = error {
+                    self.authImage = nil
+                    completionHandler?(nil)
+                    return
+                }
+                
+                if let imageDownloaded = UIImage(data: data!) {
+                    completionHandler?(imageDownloaded)
+                    self.authImage = imageDownloaded
+                    cache.setObject(imageDownloaded, forKey: url.absoluteString as NSString)
+                }
             }
-            
-            if let imageDownloaded = UIImage(data: data!) {
-                completionHandler?(imageDownloaded)
-                self.authImage = imageDownloaded
-                self.cache.setObject(imageDownloaded, forKey: url.absoluteString as NSString)
-            }
-            
         }
         
         self.task.resume()

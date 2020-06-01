@@ -65,11 +65,9 @@ extension HomeVC: UICollectionViewDelegate, UICollectionViewDataSource {
         if let authorImg = authorData?.authImage {
             cell.authorImageView.image = authorImg
         } else {
-            
-            DispatchQueue.main.async {
-                cell.authorImageView.image = nil
-            }
-            
+
+            cell.authorImageView.image = nil
+
             authorData?.fetchImage(completionHandler: { (authImage) in
                 DispatchQueue.main.async {
                     cell.authorImageView.image = authImage
